@@ -73,9 +73,9 @@
     <button class="pagar" id="btnPagar">Pagar com M-Pesa</button>
   </section>
 
-  <!-- AVISO MODO PRÉ-VISUALIZAÇÃO (GitHub Pages não corre o backend) -->
-  <div style="width:100%;max-width:420px;margin:16px 0 -6px;background:#fff8e1;border:1px solid #f0d47a;color:#7a5c00;border-radius:12px;padding:10px 14px;font-size:.8rem;line-height:1.5;">
-    ⚠️ <b>Pré-visualização estática</b> — nesta página os pagamentos não são enviados porque as credenciais M-Pesa vivem no backend Node.js. Corra o projecto localmente (<code>npm start</code>) ou faça deploy num serviço com Node (Vercel/Render).
+  <!-- AVISO: esta página estática usa o backend hospedado na Vercel -->
+  <div style="width:100%;max-width:420px;margin:16px 0 -6px;background:#e8f4fd;border:1px solid #9ecfef;color:#0b5a80;border-radius:12px;padding:10px 14px;font-size:.8rem;line-height:1.5;">
+    ℹ️ Interface hospedada no GitHub Pages · Backend/API na <b>Vercel</b> (<code>mpesa-webapp.vercel.app</code>). Os pagamentos dependem da liberação do sandbox pela Vodacom.
   </div>
 
   <!-- ESTADO / RESULTADO -->
@@ -101,11 +101,12 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+const API = 'https://mpesa-webapp.vercel.app';
 let timer = null;
 let tentativas = 0;
 
 // Healthcheck para mostrar ambiente
-fetch('/api/saude').then(r => r.json()).then(d => {
+fetch(API + '/api/saude').then(r => r.json()).then(d => {
   $('ambiente').textContent = d.ambiente === 'live' ? 'Produção' : 'Sandbox (testes)';
 }).catch(() => { $('ambiente').textContent = 'offline'; });
 
@@ -137,7 +138,7 @@ async function iniciarPagamento() {
   $('btnPagar').textContent = 'A enviar…';
 
   try {
-    const resp = await fetch('/api/pagamento', {
+    const resp = await fetch(API + '/api/pagamento', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ numero, valor, descricao })
@@ -166,7 +167,7 @@ async function iniciarPagamento() {
 async function verificar(referencia) {
   tentativas++;
   try {
-    const resp = await fetch(`/api/pagamento/${referencia}/status`);
+    const resp = await fetch(`${API}/api/pagamento/${referencia}/status`);
     const json = await resp.json();
     const d = json.data;
 

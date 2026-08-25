@@ -6,6 +6,16 @@ Webapp completo de pagamentos **M-Pesa (Vodacom Moçambique)** usando a Open API
 - Frontend: HTML/CSS/JS puro, responsivo (funciona em PWA e WebView Android)
 - Autenticação: API Key criptografada com RSA PKCS1 → Bearer token
 
+## 🌐 Deployments
+
+| Serviço | URL | Função |
+|---|---|---|
+| **Vercel (produção)** | https://mpesa-webapp.vercel.app | API + webapp completos |
+| **GitHub Pages** | https://arsadm7.github.io/mpesa-webapp/ | Interface ligada à API da Vercel |
+| **Repositório** | https://github.com/ARSADM7/mpesa-webapp | Código-fonte |
+
+Variáveis de ambiente configuradas na Vercel: `MPESA_ENV`, `MPESA_API_KEY`, `MPESA_PUBLIC_KEY`, `MPESA_SERVICE_PROVIDER_CODE`, `MPESA_ORIGIN`, `MPESA_COUNTRY`, `MPESA_CURRENCY`.
+
 ---
 
 ## ⚠️ Situação actual dos testes (IMPORTANTE)
