@@ -1,0 +1,17 @@
+# Credenciais — NUNCA commitar
+.env
+.env.local
+*.pem
+
+# Dependências
+node_modules/
+
+# Logs e sistema
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vercel
+server-*.log
+server.pid
+server.port
+*.tmp.*
