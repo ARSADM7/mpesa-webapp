@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#e60000" />
+<title>M-Pesa — Pagamentos</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body { background: #f4f5f7; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+  header { width: 100%; background: linear-gradient(135deg, #e60000, #b80000); color: #fff; padding: 28px 16px 22px; text-align: center; border-radius: 0 0 24px 24px; box-shadow: 0 4px 18px rgba(230,0,0,.25); }
+  header h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: .3px; }
+  header p { opacity: .85; font-size: .85rem; margin-top: 4px; }
+  .badge-ambiente { display: inline-block; background: rgba(255,255,255,.18); padding: 3px 10px; border-radius: 20px; font-size: .72rem; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  main { width: 100%; max-width: 420px; padding: 20px 16px 40px; flex: 1; }
+
+  .card { background: #fff; border-radius: 16px; padding: 22px 18px; box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 16px; }
+  label { display: block; font-size: .8rem; font-weight: 600; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+  input { width: 100%; padding: 14px 12px; font-size: 1.05rem; border: 2px solid #e4e6ea; border-radius: 10px; outline: none; transition: border .15s; background: #fafbfc; }
+  input:focus { border-color: #e60000; background: #fff; }
+  .campo { margin-bottom: 16px; }
+  .prefixo { display: flex; gap: 8px; align-items: center; }
+  .prefixo span { background: #fdecec; color: #c00; font-weight: 700; padding: 14px 12px; border-radius: 10px; border: 2px solid #f5c9c9; }
+
+  button.pagar { width: 100%; background: linear-gradient(135deg, #e60000, #b80000); color: #fff; border: none; padding: 15px; font-size: 1.05rem; font-weight: 700; border-radius: 12px; cursor: pointer; transition: transform .1s, box-shadow .15s; box-shadow: 0 4px 14px rgba(230,0,0,.35); }
+  button.pagar:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(230,0,0,.45); }
+  button.pagar:disabled { opacity: .55; cursor: not-allowed; }
+
+  .estado { display: none; text-align: center; padding: 10px 6px; }
+  .estado.visivel { display: block; }
+  .spinner { width: 46px; height: 46px; border: 4px solid #eee; border-top-color: #e60000; border-radius: 50%; animation: girar 0.9s linear infinite; margin: 14px auto; }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .msg-sucesso { color: #0a8a3a; font-weight: 700; font-size: 1.1rem; }
+  .msg-erro { color: #c62828; font-weight: 700; font-size: 1.05rem; }
+  .sub-msg { color: #777; font-size: .85rem; margin-top: 6px; word-break: break-all; }
+  .detalhe { background: #f7f8fa; border-radius: 10px; padding: 12px; margin-top: 12px; font-size: .82rem; color: #555; text-align: left; line-height: 1.7; }
+  .detalhe b { color: #222; }
+
+  .passos { font-size: .82rem; color: #666; line-height: 1.75; }
+  .passos li { margin-left: 18px; }
+
+  footer { padding: 14px; font-size: .72rem; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>M-Pesa Pagamentos</h1>
+  <p>Vodacom Moçambique · Open API</p>
+  <span class="badge-ambiente" id="ambiente">…</span>
+</header>
+
+<main>
+  <!-- FORMULÁRIO -->
+  <section class="card" id="secaoForm">
+    <div class="campo">
+      <label for="numero">Número do pagador</label>
+      <div class="prefixo">
+        <span>+258</span>
+        <input type="tel" id="numero" placeholder="84xxxxxxx" value="844744484" maxlength="13" autocomplete="tel-national" />
+      </div>
+    </div>
+    <div class="campo">
+      <label for="valor">Valor (MZN)</label>
+      <input type="number" id="valor" placeholder="Ex.: 100" min="1" max="500000" step="0.01" value="10" />
+    </div>
+    <div class="campo">
+      <label for="descricao">Descrição (opcional)</label>
+      <input type="text" id="descricao" placeholder="Ex.: Pedido #123" maxlength="60" />
+    </div>
+    <button class="pagar" id="btnPagar">Pagar com M-Pesa</button>
+  </section>
+
+  <!-- AVISO MODO PRÉ-VISUALIZAÇÃO (GitHub Pages não corre o backend) -->
+  <div style="width:100%;max-width:420px;margin:16px 0 -6px;background:#fff8e1;border:1px solid #f0d47a;color:#7a5c00;border-radius:12px;padding:10px 14px;font-size:.8rem;line-height:1.5;">
+    ⚠️ <b>Pré-visualização estática</b> — nesta página os pagamentos não são enviados porque as credenciais M-Pesa vivem no backend Node.js. Corra o projecto localmente (<code>npm start</code>) ou faça deploy num serviço com Node (Vercel/Render).
+  </div>
+
+  <!-- ESTADO / RESULTADO -->
+  <section class="card estado" id="secaoEstado">
+    <div id="conteudoEstado"></div>
+    <button class="pagar" id="btnNovo" style="display:none;margin-top:14px;">Nova transacção</button>
+  </section>
+
+  <!-- INSTRUÇÕES -->
+  <section class="card">
+    <label>Como funciona</label>
+    <ol class="passos">
+      <li>Introduza o número e o valor.</li>
+      <li>Clique em <b>Pagar com M-Pesa</b>.</li>
+      <li>O número recebe um prompt no telefone.</li>
+      <li>Insira o PIN M-Pesa para confirmar.</li>
+      <li>Esta página confirma o pagamento automaticamente.</li>
+    </ol>
+  </section>
+</main>
+
+<footer>Integração Open API M-Pesa · Ambiente de testes (sandbox)</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let timer = null;
+let tentativas = 0;
+
+// Healthcheck para mostrar ambiente
+fetch('/api/saude').then(r => r.json()).then(d => {
+  $('ambiente').textContent = d.ambiente === 'live' ? 'Produção' : 'Sandbox (testes)';
+}).catch(() => { $('ambiente').textContent = 'offline'; });
+
+function mostrarEstado(html) {
+  $('conteudoEstado').innerHTML = html;
+  $('secaoEstado').classList.add('visivel');
+}
+
+function aProcesso(referencia) {
+  mostrarEstado(`
+    <div class="spinner"></div>
+    <p style="font-weight:600;color:#333;">Aguarde… verifique o seu telefone 📲</p>
+    <p class="sub-msg">Insira o PIN M-Pesa para confirmar o pagamento.<br><b>Ref:</b> ${referencia}</p>
+    <div class="detalhe" id="logPolling">A consultar estado pela 1.ª vez…</div>
+  `);
+}
+
+async function iniciarPagamento() {
+  const numero = $('numero').value.trim();
+  const valor = parseFloat($('valor').value);
+  const descricao = $('descricao').value.trim();
+
+  if (!numero || !valor || valor < 1) {
+    alert('Preencha um número válido e um valor maior que zero.');
+    return;
+  }
+
+  $('btnPagar').disabled = true;
+  $('btnPagar').textContent = 'A enviar…';
+
+  try {
+    const resp = await fetch('/api/pagamento', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numero, valor, descricao })
+    });
+    const json = await resp.json();
+
+    if (!resp.ok) {
+      const msg = json.error ? `${json.error.message}` : 'Erro desconhecido';
+      falhou(msg, json.referencia || '');
+      return;
+    }
+
+    const ref = json.data.referencia;
+    aProcesso(ref);
+    tentativas = 0;
+    timer = setInterval(() => verificar(ref), 3000);
+    verificar(ref); // primeira consulta imediata
+  } catch (e) {
+    falhou('Não foi possível contactar o servidor.', '');
+  } finally {
+    $('btnPagar').disabled = false;
+    $('btnPagar').textContent = 'Pagar com M-Pesa';
+  }
+}
+
+async function verificar(referencia) {
+  tentativas++;
+  try {
+    const resp = await fetch(`/api/pagamento/${referencia}/status`);
+    const json = await resp.json();
+    const d = json.data;
+
+    if ($('logPolling')) {
+      $('logPolling').textContent = `Consulta n.º ${tentativas} → ${d.estado.toUpperCase()} (${d.codigo || ''})`;
+    }
+
+    if (d.estado === 'sucesso') { parar(); sucesso(d); return; }
+    if (d.estado === 'falhou') { parar(); falhou(d.mensagem, referencia); return; }
+    if (d.estado !== 'pendente' && d.estado !== 'aceito' && tentativas > 3) {
+      parar(); falhou('Transacção não encontrada ou expirada.', referencia); return;
+    }
+    if (tentativas > 30) { parar(); falhou('Tempo esgotado à espera da confirmação.', referencia); return; }
+  } catch (_e) {
+    if (tentativas > 30) { parar(); falhou('Falha na consulta ao servidor.', referencia); }
+  }
+}
+
+function sucesso(d) {
+  mostrarEstado(`
+    <p style="font-size:2.2rem;">✅</p>
+    <p class="msg-sucesso">Pagamento confirmado!</p>
+    <div class="detalhe">
+      <b>Referência:</b> ${d.referencia}<br>
+      <b>Transaction ID:</b> ${d.transactionId || '—'}<br>
+      <b>Mensagem API:</b> ${d.mensagem}
+    </div>
+  `);
+  $('btnNovo').style.display = 'block';
+}
+
+function falhou(msg, referencia) {
+  parar();
+  mostrarEstado(`
+    <p style="font-size:2.2rem;">❌</p>
+    <p class="msg-erro">Pagamento não concluído</p>
+    <div class="detalhe">
+      <b>Motivo:</b> ${msg}<br>
+      ${referencia ? `<b>Referência:</b> ${referencia}<br>` : ''}
+    </div>
+  `);
+  $('btnNovo').style.display = 'block';
+}
+
+function parar() { if (timer) { clearInterval(timer); timer = null; } }
+
+$('btnPagar').addEventListener('click', iniciarPagamento);
+$('btnNovo').addEventListener('click', () => {
+  parar();
+  $('secaoEstado').classList.remove('visivel');
+  $('btnNovo').style.display = 'none';
+});
+</script>
+</body>
+</html>
